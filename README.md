@@ -1,2 +1,4 @@
-# simplex
-Straightforward DFS sudoku solver
+## Pure - Straightforward Sudoku Solver
+
+xyz
+

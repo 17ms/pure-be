@@ -1,0 +1,10 @@
+[package]
+name = "pure"
+description = "Straightforward sudoku solver"
+authors = ["17ms <hello@golfex.xyz>"]
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
