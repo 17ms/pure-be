@@ -4,7 +4,7 @@ Actix Web HTTP API capable of solving Sudokus using [Straightforward Depth-First
 
 ## Performance
 
-As stated in Armando B. Matos' [paper](https://web.archive.org/web/20221208212421/https://www.dcc.fc.up.pt/~acm/sudoku.pdf), more complex heuristics or mathematics based approaches can most of the time be surpassed by a primitive DFS. The following benchmarks are produced using the [collection of 49151 distinct Sudoku configurations](https://web.archive.org/web/20120730100322/http://mapleta.maths.uwa.edu.au/~gordon/sudokumin.php) prepared by Gordon Royle.
+As stated in Armando B. Matos's [paper](https://web.archive.org/web/20221208212421/https://www.dcc.fc.up.pt/~acm/sudoku.pdf), more complex heuristics or mathematics based approaches can most of the time be surpassed by a primitive DFS. The following benchmarks are produced using the [collection of 49151 distinct Sudoku configurations](https://web.archive.org/web/20120730100322/http://mapleta.maths.uwa.edu.au/~gordon/sudokumin.php) prepared by Gordon Royle.
 
 TODO: table of the benchmark results
 
