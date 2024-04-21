@@ -1,6 +1,6 @@
 # HTTP API backend for a Sudoku solver
 
-Actix Web HTTP API capable of solving Sudokus using [Straightforward Depth-First Search (SDFS)](https://web.archive.org/web/20221208212421/https://www.dcc.fc.up.pt/~acm/sudoku.pdf). 
+Actix Web HTTP API capable of solving Sudokus using Straightforward Depth-First Search (SDFS).
 
 ## Performance
 
@@ -27,8 +27,7 @@ All endpoints accept the input Sudokus in the following JSON format:
 
 ## Roadmap
 
-- [x] Endpoint for SDFS solver
-- [ ] Traffic logging middleware
+- [x] Endpoint for [SDFS](https://web.archive.org/web/20221208212421/https://www.dcc.fc.up.pt/~acm/sudoku.pdf) solver
+- [ ] Middlewares for rate limiting & traffic logging
 - [ ] Tests with randomized payloads from the `sudoku17` source
 - [ ] Endpoint for Exact cover solver ([Knuth's Algorithm X](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X) with [Dancing Links](https://en.wikipedia.org/wiki/Dancing_Links))
-- [ ] Built-in rate limiting
