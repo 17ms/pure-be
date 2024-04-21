@@ -1,6 +1,7 @@
 use std::{error::Error, ops::Add};
 
 use cpu_time::ProcessTime;
+use log::debug;
 use serde::Serialize;
 
 // wrapper for n > 32 arrays
@@ -124,9 +125,13 @@ pub fn handle_req(data: &mut [Sudoku]) -> Result<u128, Box<dyn Error>> {
     let total_cpu = ProcessTime::now();
 
     for s in data.iter_mut() {
+        debug!("Beginning to solve a new Sudoku");
+
         let i_cpu = ProcessTime::now();
         s.solve(0, 0);
         s.cpu_time_ms = i_cpu.elapsed().as_millis();
+
+        debug!("Finished the current iteration in {} ms", s.cpu_time_ms);
     }
 
     Ok(total_cpu.elapsed().as_millis())

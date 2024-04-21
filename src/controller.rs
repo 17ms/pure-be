@@ -1,11 +1,18 @@
 use actix_web::{post, web, HttpResponse, Responder};
-use serde::Deserialize;
+use log::info;
+use serde::{Deserialize, Serialize};
 
-use crate::solve::{handle_req, Sudoku};
+use crate::solver::{handle_req, Sudoku};
 
 #[derive(Deserialize)]
 struct Entry {
     grid: String,
+}
+
+#[derive(Serialize)]
+struct Response {
+    data: Vec<Sudoku>,
+    total_cpu_ms: u128,
 }
 
 #[post("/solve")]
@@ -17,10 +24,11 @@ pub async fn solve(entries: web::Json<Vec<Entry>>) -> impl Responder {
     }
 
     // solution, cpu time (ms), branch count, visited nodes count
-    let _total_cpu_ms =
+    let total_cpu_ms =
         handle_req(&mut data).expect("Error during request handling on route '/solve'");
+    let res = Response { data, total_cpu_ms };
 
-    // TODO: include total cpu time into the response
+    info!("Processed {} entries in {} ms", entries.len(), total_cpu_ms);
 
-    HttpResponse::Ok().json(data)
+    HttpResponse::Ok().json(res)
 }
