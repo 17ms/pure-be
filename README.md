@@ -1,16 +1,14 @@
 # HTTP API backend for a Sudoku solver
 
-Actix Web HTTP API capable of solving Sudokus using Straightforward Depth-First Search (SDFS).
-
 ## Performance
 
 Benchmarks are produced using a few randomly picked samples (of different difficulty levels) from Gordon Royle's [collection](https://web.archive.org/web/20120730100322/http://mapleta.maths.uwa.edu.au/~gordon/sudokumin.php) of 49151 distinct Sudoku configurations.
 
 ## Endpoints
 
-- `/sdfs`: Straightforward Depth-First Search bruteforce solver
+- `/sdfs`: Straightforward Depth-First Search bruteforce solver (will be upgraded, see [roadmap](#roadmap))
 
-All endpoints accept the input Sudokus in the following JSON format:
+All endpoints parse the input Sudokus from stringified flat grids received in the following JSON format:
 
 ```json
 [
@@ -25,10 +23,11 @@ All endpoints accept the input Sudokus in the following JSON format:
 
 ## Roadmap
 
-- [x] Endpoint for bare [DFS](https://web.archive.org/web/20221208212421/https://www.dcc.fc.up.pt/~acm/sudoku.pdf) solver
-- [x] Tests with randomized payloads from the `sudoku17` source
-- [ ] Middlewares for rate limiting & traffic logging
-- [ ] Smarter error propagation & handling without panics
-- [ ] Easy-to-read response formatting
-- [ ] Endpoint for Exact cover solver ([Knuth's Algorithm X](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X) with [Dancing Links](https://en.wikipedia.org/wiki/Dancing_Links))
-- [ ] Include benchmark comparisons of a few randomly picked varying difficulty Sudokus
+- [x] Startpoint with bare [DFS](https://web.archive.org/web/20221208212421/https://www.dcc.fc.up.pt/~acm/sudoku.pdf) solver
+  - [ ] Accommodate Minimum Remaining Values (MRV) heuristic and Forward Checking to reduce time spent on backtracking
+- [x] Integration tests with randomized payloads picked from Gordon Royle's collection (`sudoku17`)
+- [ ] Improved error propagation to minimize panics
+- [ ] Easy-to-read response formatting (what should be done to pack the wanted information better?)
+- [ ] Rate limiting via middleware
+- [ ] Docs: Benchmark comparisons of a few randomly picked varying difficulty Sudokus
+- [ ] Additional endpoint for Exact cover solver ([Knuth's Algorithm X](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X) with [Dancing Links](https://en.wikipedia.org/wiki/Dancing_Links))
