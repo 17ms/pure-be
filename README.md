@@ -8,7 +8,7 @@ Benchmarks are produced using a few randomly picked samples (of different diffic
 
 - `/sdfs`: Straightforward Depth-First Search bruteforce solver (will be upgraded, see [roadmap](#roadmap))
 
-All endpoints parse the input Sudokus from stringified flat grids received in the following JSON format:
+All endpoints parse the input Sudokus from stringified flat grids received in the following JSON format (empty cells represented with `0`):
 
 ```json
 [
@@ -26,7 +26,7 @@ All endpoints parse the input Sudokus from stringified flat grids received in th
 - [x] Startpoint with bare [DFS](https://web.archive.org/web/20221208212421/https://www.dcc.fc.up.pt/~acm/sudoku.pdf) solver
   - [ ] Accommodate Minimum Remaining Values (MRV) heuristic and Forward Checking to reduce time spent on backtracking
 - [x] Integration tests with randomized payloads picked from Gordon Royle's collection (`sudoku17`)
-- [ ] Improved error propagation to minimize panics
+- [x] Improved error propagation to server responses & internal logging
 - [ ] Easy-to-read response formatting (what should be done to pack the wanted information better?)
 - [ ] Rate limiting via middleware
 - [ ] Docs: Benchmark comparisons of a few randomly picked varying difficulty Sudokus

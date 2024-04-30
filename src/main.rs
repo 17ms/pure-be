@@ -1,3 +1,4 @@
+mod constraint;
 mod controller;
 mod middleware;
 mod solver;
@@ -7,6 +8,7 @@ use std::{env, io::Result};
 use actix_web::{middleware::Logger, App, HttpServer};
 use dotenv::dotenv;
 use env_logger::Env;
+use log::info;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -24,8 +26,9 @@ async fn main() -> Result<()> {
         .parse::<u16>()
         .expect("Failed to parse the host port number");
 
-    println!("[+] Starting a listener on {}:{}", host, port);
+    info!("Starting a listener on {}:{}", host, port);
 
+    // Only panics if no socket addresses were successfully bound or if no Tokio runtime is set up
     HttpServer::new(|| {
         App::new()
             .wrap(Logger::default())
