@@ -15,7 +15,7 @@ async fn main() -> Result<()> {
     dotenv().ok();
     env_logger::init_from_env(Env::default().default_filter_or("info")); // RUST_LOG
 
-    let mode = env::var("MODE").unwrap_or("testing".to_owned()); // MODE
+    let mode = env::var("MODE").unwrap_or("testing".to_owned());
     let host = if mode == "prod" {
         "0.0.0.0"
     } else {

@@ -1,5 +1,17 @@
 # HTTP API backend for a Sudoku solver
 
+## Setup
+
+```shell
+# Install the 'pre-commit-rust' hook
+$ pre-commit install
+# Build & run
+$ cargo build --release
+$ ./target/release/pure-be
+```
+
+By default the server will be listening for requests on `localhost:8080`. The default configuration can be modified using environment variables `RUST_LOG`, `MODE`, and `PORT`.
+
 ## Performance
 
 Benchmarks are produced using a few randomly picked samples (of different difficulty levels) from Gordon Royle's [collection](https://web.archive.org/web/20120730100322/http://mapleta.maths.uwa.edu.au/~gordon/sudokumin.php) of 49151 distinct Sudoku configurations.
