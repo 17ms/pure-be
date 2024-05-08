@@ -36,7 +36,8 @@ All endpoints parse the input Sudokus from stringified flat grids received in th
 ## Roadmap
 
 - [x] Startpoint with bare [DFS](https://web.archive.org/web/20221208212421/https://www.dcc.fc.up.pt/~acm/sudoku.pdf) solver
-  - [ ] Accommodate Minimum Remaining Values (MRV) heuristic and Forward Checking to reduce time spent on backtracking
+  - [ ] Implement AC-3 constraint propagation before proceeding to DFS
+  - [ ] Minimum Remaining Values (MRV) heuristic and Forward Checking to reduce DFS iterations
 - [x] Integration tests with randomized payloads picked from Gordon Royle's collection (`sudoku17`)
 - [x] Improved error propagation to server responses & internal logging
 - [ ] Easy-to-read response formatting (what should be done to pack the wanted information better?)
