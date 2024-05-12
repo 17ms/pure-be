@@ -19,7 +19,7 @@ The API contains a single solver endpoint: `/solve`. The specific algorithm can 
 - `cpdfs`: Starts by applying Arc Consistency Algorithm #3 (constraint propagation) & then continues with backtracking Depth-first search enhanced with Minimum Remaining Value (MRV) heuristic and Forward Checking (FC)
 - `exact`: Will be implemented in a future version (Knuth's Algorithm X with Dancing Links)
 
-All endpoints parse the input Sudokus from stringified flat grids received in the following JSON format (empty cells represented with `0`):
+The endpoint parses the Sudokus from the following request payload format: a JSON array of stringified 1D grids (empty cells represented with `0`):
 
 ```json
 [
@@ -27,7 +27,6 @@ All endpoints parse the input Sudokus from stringified flat grids received in th
     "grid": "500000010020007000000010000000200604100005000800000000090400200000380000000000700",
     "solver": "cpdfs|exact"
   }
-  // ...
 ]
 ```
 
