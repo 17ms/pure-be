@@ -1,7 +1,7 @@
-mod constraint;
 mod controller;
 mod middleware;
 mod solver;
+mod sudoku;
 
 use std::{env, io::Result};
 

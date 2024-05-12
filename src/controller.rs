@@ -1,105 +1,172 @@
-use actix_web::{post, web, HttpResponse, Responder};
+use core::fmt;
+use std::str::FromStr;
+
+use actix_web::{error::HttpError, http::StatusCode, post, web, HttpResponse, Responder};
 use log::{debug, error, info};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use validator::{Validate, ValidationError};
 
-use crate::{
-    constraint::check_default_constraints,
-    solver::{handle_req, SolverType, Sudoku},
-};
+use crate::{solver::Solver, sudoku::Sudoku};
 
 static RE_FLAT_GRID: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\d{81}").expect("Invalid regex pattern in the validator"));
 
-#[derive(Serialize, Deserialize, Validate)]
+#[derive(Serialize, Deserialize)]
 pub struct Entry {
-    #[validate(custom(
-        function = "validate_entry",
-        code = "validate_entry",
-        message = "The entries must be syntactically valid and fulfill the basic Sudoku constraints"
-    ))]
-    pub grid: String,
+    grid: String,
+    solver: Option<String>,
 }
 
-fn validate_entry(raw: &str) -> Result<(), ValidationError> {
-    if !RE_FLAT_GRID.is_match(raw) {
-        return Err(ValidationError::new(
-            "The entry grid isn't exactly 81 long string of digits",
-        ));
+impl Entry {
+    #[allow(dead_code)]
+    pub fn new(grid: String, solver: Option<String>) -> Self {
+        // Manual Entry creation should only be utilized in the unit and integration tests
+        Self { grid, solver }
     }
 
-    // After constraints are checked, the default construction process doesn't panic
-    let grid: Vec<Vec<u8>> = raw
-        .chars()
-        .map(|ch| ch.to_digit(10).unwrap() as u8)
-        .collect::<Vec<u8>>()
-        .chunks(9)
-        .map(|chunk| chunk.to_vec())
-        .collect();
+    /// Simultaneously converts the `Entry` into a new `Sudoku` and validates the input format
+    /// and predefined puzzle constraints. Returns `Ok(Sudoku)` if the conversion and validation
+    /// is successful, and `std::error::Error` if the either of the steps fail.
+    pub fn to_sudoku(&self) -> Result<Sudoku, ErrorResponse> {
+        if !RE_FLAT_GRID.is_match(&self.grid) {
+            debug!("Incoming request entry validation failed due to the input not matching the grid regex");
+            return Err(ErrorResponse::new(
+                "400",
+                String::from("The entry grid isn't exactly 81 long string of digits"),
+            ));
+        }
 
-    match check_default_constraints(&grid, None) {
-        Ok(is_ok) => match is_ok {
-            true => Ok(()),
-            false => Err(ValidationError::new("Default Sudoku constraits not met")),
-        },
-        Err(_) => Err(ValidationError::new("Default Sudoku constraits not met")),
+        let sudoku = match Sudoku::new(self.grid.clone()) {
+            Ok(sudoku) => sudoku,
+            Err(e) => return Err(ErrorResponse::new("400", e.to_string())),
+        };
+
+        if !sudoku.is_valid(None) {
+            debug!("Incoming request entry validation failed due to the puzzle not meeting the default Sudoku constraints");
+            return Err(ErrorResponse::new(
+                "400",
+                String::from("Default Sudoku constraints not met"),
+            ));
+        }
+
+        // TODO: Remove the exception once the Exact Cover solver is implemented
+        if self.solver.as_ref().is_some_and(|s| s == "exact") {
+            return Err(ErrorResponse::new("501", String::from("The Exact Cover solver isn't implemented yet, but will be available in the future versions")));
+        }
+
+        Ok(sudoku)
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Response {
-    pub data: Vec<Sudoku>,
-    total_cpu_ms: u128,
+pub struct SuccessResponse {
+    solved: Vec<String>,
+    // total_cpu_ms: u128,
+    // TODO: include performance metadata here (part of the "Response formatting" goal specified
+    // in the README.md)
+}
+
+impl SuccessResponse {
+    fn new(solved_grids: Vec<Vec<Vec<u8>>>) -> Self {
+        Self {
+            solved: solved_grids.into_iter().map(Self::grid_to_string).collect(),
+        }
+    }
+
+    /// Converts the `Vec<Vec<u8>>` grid into a 1D `String` to be consistent with the input format.
+    fn grid_to_string(grid: Vec<Vec<u8>>) -> String {
+        grid.iter()
+            .flat_map(|row| row.iter())
+            .map(|&num| num.to_string())
+            .collect()
+    }
+
+    #[allow(dead_code)]
+    pub fn get_solved(&self) -> Vec<String> {
+        self.solved.clone()
+    }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ErrorResponse {
-    pub code: String,
-    pub message: String,
+    code: String,
+    message: String,
+}
+
+impl fmt::Debug for ErrorResponse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{{ file: {}, line: {} }}", file!(), line!())
+    }
 }
 
 impl ErrorResponse {
-    fn new(code: &str, message: &str) -> ErrorResponse {
-        ErrorResponse {
+    fn new(code: &str, message: String) -> Self {
+        Self {
             code: code.to_owned(),
-            message: message.to_owned(),
+            message,
+        }
+    }
+
+    fn status_str(&self) -> &str {
+        &self.code
+    }
+
+    pub fn status(&self) -> Result<StatusCode, HttpError> {
+        Ok(StatusCode::from_str(&self.code)?)
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+}
+
+impl From<ErrorResponse> for HttpResponse {
+    fn from(value: ErrorResponse) -> Self {
+        match value.status_str() {
+            "400" => HttpResponse::BadRequest().json(value),
+            "500" => HttpResponse::InternalServerError().json(value),
+            "501" => HttpResponse::NotImplemented().json(value),
+            _ => HttpResponse::InternalServerError().json(value),
         }
     }
 }
 
-#[post("/sdfs")]
+#[post("/solve")]
 pub async fn solve(entries: web::Json<Vec<Entry>>) -> impl Responder {
-    match entries.validate() {
-        Ok(_) => debug!("Valid entry detected"),
-        Err(e) => {
-            // Absurdly bad way to display the raised error, but it'll work for now
-            let e_disp = format!("{}", e);
-            let e_msg = e_disp.split(".grid: ").collect::<Vec<&str>>()[1];
-            let res_data = ErrorResponse::new("400", e_msg);
-
-            return HttpResponse::BadRequest().json(res_data);
-        }
-    };
-
-    let mut data = Vec::new();
+    let mut solvers = Vec::new();
 
     for e in entries.iter() {
-        data.push(Sudoku::new(e.grid.to_owned()));
+        let default_type_str = String::from("cpdfs");
+        let solver_type_str = e.solver.as_ref().unwrap_or(&default_type_str);
+
+        match e.to_sudoku() {
+            Ok(sudoku) => solvers.push(Solver::new(sudoku, solver_type_str)),
+            Err(e) => {
+                return e.into();
+            }
+        };
     }
 
-    match handle_req(&mut data, SolverType::Sdfs) {
-        Ok(total_cpu_ms) => {
-            // solution, cpu time (ms), branch count, visited nodes count
-            info!("Processed {} entries in {} ms", entries.len(), total_cpu_ms);
-            HttpResponse::Ok().json(Response { data, total_cpu_ms })
-        }
-        Err(e) => {
-            error!("Internal error during SDFS process: {}", e);
-            HttpResponse::InternalServerError().finish()
-        }
+    info!("Starting the synchronous solvers");
+    let mut solved = Vec::new();
+
+    for mut s in solvers {
+        match s.solve() {
+            true => {
+                info!("Solver found a solution in {} ms", s.get_execution_time());
+                solved.push(s.get_inner_grid())
+            }
+            false => error!("Internal error: Solver failed even though the input Sudoku was valid"),
+        };
     }
+
+    if solved.is_empty() {
+        error!("All solver iterations failed internally, responding to client with status 500");
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    HttpResponse::Ok().json(SuccessResponse::new(solved))
 }
 
 #[cfg(test)]
@@ -109,42 +176,70 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_alphanumeric_grid() {
-        let malformed = Entry {
-            grid:
-                "00080905160020000C30000000001000003008A90000000000040040003060B000051000000000000"
-                    .to_string(),
+        let valid = Entry {
+            grid: String::from(
+                "00080905160020000C30000000001000003008A90000000000040040003060B000051000000000000",
+            ),
+            solver: None,
         };
-        malformed.validate().unwrap();
+        valid.to_sudoku().unwrap();
     }
 
     #[test]
     #[should_panic]
     fn test_short_grid() {
-        let malformed = Entry {
-            grid: "0008051600200000300000000010000030080900000000000400400030600000051000000000"
-                .to_string(),
+        let valid = Entry {
+            grid: String::from(
+                "0008051600200000300000000010000030080900000000000400400030600000051000000000",
+            ),
+            solver: None,
         };
-        malformed.validate().unwrap();
+        valid.to_sudoku().unwrap();
     }
 
     #[test]
     #[should_panic]
     fn test_invalid_constraints() {
-        let malformed = Entry {
-            grid:
-                "830070000600195000098000060800060003400803001700020006060000280000419005000080079"
-                    .to_string(),
+        let valid = Entry {
+            grid: String::from(
+                "830070000600195000098000060800060003400803001700020006060000280000419005000080079",
+            ),
+            solver: None,
         };
-        malformed.validate().unwrap();
+        valid.to_sudoku().unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_unimplemented_solver() {
+        let valid = Entry {
+            grid: String::from(
+                "000000037002000050010000000000200104000001600300400000700063000000000200000080000",
+            ),
+            solver: Some(String::from("exact")),
+        };
+        valid.to_sudoku().unwrap();
+    }
+
+    #[test]
+    fn test_nonexistent_solver() {
+        let malformed = Entry {
+            grid: String::from(
+                "000000037002000050010000000000200104000001600300400000700063000000000200000080000",
+            ),
+            solver: Some(String::from("nonexistent")),
+        };
+        malformed.to_sudoku().unwrap();
     }
 
     #[test]
     fn test_valid_grid() {
-        let malformed = Entry {
-            grid:
-                "000000037002000050010000000000200104000001600300400000700063000000000200000080000"
-                    .to_string(),
+        let valid = Entry {
+            grid: String::from(
+                "000000037002000050010000000000200104000001600300400000700063000000000200000080000",
+            ),
+            solver: None,
         };
-        malformed.validate().unwrap();
+        valid.to_sudoku().unwrap();
     }
 }

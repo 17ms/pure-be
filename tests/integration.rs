@@ -5,35 +5,40 @@ use std::{
 
 use actix_web::{http::StatusCode, test, App};
 use pure_be::{
-    constraint::check_default_constraints,
-    controller::{solve, Entry, ErrorResponse, Response},
+    controller::{self, Entry, ErrorResponse, SuccessResponse},
+    sudoku::Sudoku,
 };
 use rand::Rng;
 
 const COLLECTION_SIZE: usize = 49150;
 
-/// Sends a POST request with randomly picked Sudokus to the '/sdfs' endpoint to test the solving process.
+// TODO: include individual test for the Exact Cover solver once implemented
+
+/// Sends a POST request with randomly picked Sudokus to the `/solve` endpoint with the
+/// `solver_type` parameter set to `cpdfs` to test the AC-3 + enhanced DFS implementation.
 #[actix_web::test]
-async fn test_sdfs() {
-    let app = test::init_service(App::new().service(solve)).await;
+async fn test_cpdfs_solver() {
+    let test_app = test::init_service(App::new().service(controller::solve)).await;
     let unsolved = get_unsolved();
-    let payload = create_payload(unsolved);
+    let payload = into_payload(unsolved, None);
 
     let req = test::TestRequest::post()
-        .uri("/sdfs")
+        .uri("/solve")
         .set_json(payload)
         .to_request();
-    let res: Response = test::call_and_read_body_json(&app, req).await;
+    let res: SuccessResponse = test::call_and_read_body_json(&test_app, req).await;
 
-    for sudoku in res.data {
-        assert!(check_default_constraints(&sudoku.grid, None).unwrap());
+    for grid_str in res.get_solved() {
+        let sudoku = Sudoku::new(grid_str).unwrap();
+        assert!(sudoku.is_valid(None));
+        assert!(sudoku.is_solved());
     }
 }
 
 /// Sends a POST request with syntactically malformed contents to test the regex validators.
 #[actix_web::test]
 async fn test_malformed_data() {
-    let app = test::init_service(App::new().service(solve)).await;
+    let test_app = test::init_service(App::new().service(controller::solve)).await;
 
     let total_raws = vec![
         "00080905160020000C30000000001000003008A90000000000040040003060B000051000000000000", // Invalid contents
@@ -41,51 +46,50 @@ async fn test_malformed_data() {
     ];
 
     for raw in total_raws {
-        let payload = create_payload(vec![raw.to_owned()]);
+        let payload = into_payload(vec![raw.to_owned()], None);
         let req = test::TestRequest::post()
-            .uri("/sdfs")
+            .uri("/solve")
             .set_json(payload)
             .to_request();
-        let res = test::call_service(&app, req).await;
+        let res = test::call_service(&test_app, req).await;
 
         assert_eq!(
             res.status(),
             StatusCode::BAD_REQUEST,
-            "Malformed data should result in a 400 (Bad Request) response"
+            "Invalid HTTP status code received in the error response"
         );
 
         let res_body: ErrorResponse = test::read_body_json(res).await;
+        let e_status = res_body.status().unwrap();
+        let e_msg = res_body.message();
 
         assert_eq!(
-            res_body.code,
-            StatusCode::BAD_REQUEST
-                .to_string()
-                .split(' ')
-                .collect::<Vec<&str>>()[0],
-            "Invalid status code received in the error payload"
+            e_status,
+            StatusCode::BAD_REQUEST,
+            "Invalid HTTP status code received in the error payload"
         );
         assert_eq!(
-            res_body.message,
-            "The entries must be syntactically valid and fulfill the basic Sudoku constraints",
+            e_msg, "The entry grid isn't exactly 81 long string of digits",
             "Invalid message received in the error payload"
-        )
+        );
     }
 }
 
-/// Sends a POST request with invalid Sudoku grid (i.e. puzzle constraints are not fulfilled).
+/// Sends a POST request with invalid Sudoku grid (i.e. puzzle constraints are not fulfilled) to
+/// test the `Entry` to `Sudoku` conversion process via the `to_sudoku` method.
 #[actix_web::test]
-async fn test_invalid_sudoku() {
-    let app = test::init_service(App::new().service(solve)).await;
+async fn test_invalid_grid() {
+    let test_app = test::init_service(App::new().service(controller::solve)).await;
 
     let invalid_raw =
         "830070000600195000098000060800060003400803001700020006060000280000419005000080079";
-    let payload = create_payload(vec![invalid_raw.to_owned()]);
+    let payload = into_payload(vec![invalid_raw.to_owned()], None);
 
     let req = test::TestRequest::post()
-        .uri("/sdfs")
+        .uri("/solve")
         .set_json(payload)
         .to_request();
-    let res = test::call_service(&app, req).await;
+    let res = test::call_service(&test_app, req).await;
 
     assert_eq!(
         res.status(),
@@ -94,20 +98,18 @@ async fn test_invalid_sudoku() {
     );
 
     let res_body: ErrorResponse = test::read_body_json(res).await;
+    let e_status = res_body.status().unwrap();
+    let e_msg = res_body.message();
 
     assert_eq!(
-        res_body.code,
-        StatusCode::BAD_REQUEST
-            .to_string()
-            .split(' ')
-            .collect::<Vec<&str>>()[0],
-        "Invalid status code received in the error payload"
+        e_status,
+        StatusCode::BAD_REQUEST,
+        "Invalid HTTP status code received in the error payload"
     );
     assert_eq!(
-        res_body.message,
-        "The entries must be syntactically valid and fulfill the basic Sudoku constraints",
+        e_msg, "Default Sudoku constraints not met",
         "Invalid message received in the error payload"
-    )
+    );
 }
 
 fn get_unsolved() -> Vec<String> {
@@ -126,10 +128,8 @@ fn get_unsolved() -> Vec<String> {
     unsolved
 }
 
-fn create_payload(raws: Vec<String>) -> Vec<Entry> {
-    raws.iter()
-        .map(|raw| Entry {
-            grid: raw.to_owned(),
-        })
+fn into_payload(raws: Vec<String>, s_type: Option<String>) -> Vec<Entry> {
+    raws.into_iter()
+        .map(|raw| Entry::new(raw.to_owned(), s_type.clone()))
         .collect()
 }
