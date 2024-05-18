@@ -42,11 +42,8 @@ impl Default for Metadata {
 
 trait SudokuSolver {
     fn solve(&mut self) -> bool;
-
     fn get_inner_grid(&self) -> Vec<Vec<u8>>;
-
     fn grid_to_string(&self) -> String;
-
     fn clone_grid(&self) -> Vec<Vec<u8>>;
 }
 
