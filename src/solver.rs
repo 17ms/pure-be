@@ -208,7 +208,7 @@ impl DfsSolver {
             return true;
         }
 
-        // TODO: consider possible optimizations for creating new heap for every branch
+        // TODO: consider possible optimizations like BTreeMap's built in `pop_first`
 
         // Pop the smallest domain from the min-heap (MRV)
         let mut heap = Self::map_to_heap(self.possible_values.clone());
@@ -219,7 +219,6 @@ impl DfsSolver {
 
         let CellDomain { pos, domain, .. } = heap.pop().unwrap();
 
-        // Pop the smallest domain from the min-heap (MRV)
         for d_value in domain {
             if seen.get(&pos).unwrap().contains(&d_value) {
                 continue;
@@ -229,9 +228,6 @@ impl DfsSolver {
 
             // Assign new and prune related domains (FC)
             let old_domains = skip_fail_option!(self.fc_pruning(pos, &d_value));
-
-            //let pruned_heap = skip_fail_option!(self.fc_pruning(heap, pos, d_value));
-            //let pruned_heap = Self::map_to_heap(pruned_map);
 
             // Branch with pruned domains (DFS)
             if self.dfs(seen.clone()) {
@@ -243,7 +239,6 @@ impl DfsSolver {
             self.possible_values.get_mut(&pos).unwrap().remove(&d_value);
             self.sudoku.set_grid_value(pos, 0);
         }
-        //}
 
         // Trigger backtrack if the current depth is explored and no solution is found
         false
