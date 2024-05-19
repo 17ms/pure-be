@@ -43,9 +43,7 @@ Benchmarks are produced using [criterion](https://crates.io/crates/criterion) an
 | **Std. Dev.** | 88.588 ns       | 105.47 ns    | 126.66 ns       |
 | **Median**    | 9.0308 µs       | 9.1153 µs    | 9.1456 µs       |
 
-<div align="center">
-    <img src=".github/docs/rand_cpdfs_mean.png" alt="Plot describing the mean based on the benchmark results of the 'CPDFS' solver" width="70%">
-</div>
+<img src=".github/docs/rand_cpdfs_mean.png" alt="Plot describing the mean based on the benchmark results of the 'CPDFS' solver" width="90%">
 
 ## Roadmap
 
