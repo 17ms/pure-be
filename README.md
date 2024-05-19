@@ -32,7 +32,20 @@ The endpoint parses the Sudokus from the following request payload format: a JSO
 
 ## Performance
 
-Benchmarks are produced using a few randomly picked samples (of different difficulty levels) from Gordon Royle's [collection](https://web.archive.org/web/20120730100322/http://mapleta.maths.uwa.edu.au/~gordon/sudokumin.php) of 49151 distinct Sudoku configurations.
+Benchmarks are produced using [criterion](https://crates.io/crates/criterion) and a few randomly picked samples (of different difficulty levels) from Gordon Royle's [collection](https://web.archive.org/web/20120730100322/http://mapleta.maths.uwa.edu.au/~gordon/sudokumin.php) of 49151 distinct Sudoku configurations.
+
+### Backtracking DFS
+
+|               | **Lower bound** | **Estimate** | **Upper bound** |
+| ------------- | --------------- | ------------ | --------------- |
+| **Slope**     | 9.0163 µs       | 9.0318 µs    | 9.0504 µs       |
+| **Mean**      | 9.0750 µs       | 9.0950 µs    | 9.1161 µs       |
+| **Std. Dev.** | 88.588 ns       | 105.47 ns    | 126.66 ns       |
+| **Median**    | 9.0308 µs       | 9.1153 µs    | 9.1456 µs       |
+
+<div align="center">
+    <img src=".github/docs/rand_cpdfs_mean.png" alt="Plot describing the mean based on the benchmark results of the 'CPDFS' solver" width="70%">
+</div>
 
 ## Roadmap
 
@@ -41,7 +54,7 @@ Benchmarks are produced using a few randomly picked samples (of different diffic
   - [x] MRV heuristic and Forward Checking
 - [x] Integration tests with randomized payloads picked from Gordon Royle's collection (`sudoku17`)
 - [x] Improved error propagation to server responses & internal logging
+- [x] Docs: Randomized benchmarks with [criterion](https://crates.io/crates/criterion)
 - [ ] Exact cover solver ([Knuth's Algorithm X](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X) with [Dancing Links](https://en.wikipedia.org/wiki/Dancing_Links))
 - [ ] Server response formatting (i.e. best format to serve the performance related metadata collected by the solver)
 - [ ] Rate limiting via middleware
-- [ ] Docs: Benchmark comparisons of a few randomly picked varying difficulty Sudokus
