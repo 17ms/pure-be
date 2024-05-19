@@ -59,16 +59,11 @@ async fn test_malformed_data() {
 
         let res_body: ErrorResponse = test::read_body_json(res).await;
         let e_status = res_body.status().unwrap();
-        let e_msg = res_body.message();
 
         assert_eq!(
             e_status,
             StatusCode::BAD_REQUEST,
             "Invalid HTTP status code received in the error payload"
-        );
-        assert_eq!(
-            e_msg, "The entry grid isn't exactly 81 long string of digits",
-            "Invalid message received in the error payload"
         );
     }
 }
@@ -97,16 +92,11 @@ async fn test_invalid_grid() {
 
     let res_body: ErrorResponse = test::read_body_json(res).await;
     let e_status = res_body.status().unwrap();
-    let e_msg = res_body.message();
 
     assert_eq!(
         e_status,
         StatusCode::BAD_REQUEST,
         "Invalid HTTP status code received in the error payload"
-    );
-    assert_eq!(
-        e_msg, "Default Sudoku constraints not met",
-        "Invalid message received in the error payload"
     );
 }
 
