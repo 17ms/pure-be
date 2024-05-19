@@ -10,8 +10,6 @@ use pure_be::{
 };
 use rand::Rng;
 
-const COLLECTION_SIZE: usize = 49150;
-
 // TODO: include individual test for the Exact Cover solver once implemented
 
 /// Sends a POST request with randomly picked Sudokus to the `/solve` endpoint with the
@@ -113,6 +111,7 @@ async fn test_invalid_grid() {
 }
 
 fn get_unsolved() -> Vec<String> {
+    static COLLECTION_SIZE: usize = 49150;
     let mut rng = rand::thread_rng();
 
     let file = File::open("./tests/sudoku17")

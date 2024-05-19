@@ -1,6 +1,5 @@
 use std::{
-    cmp::{Ordering, Reverse},
-    collections::{BTreeMap, BTreeSet, BinaryHeap},
+    collections::{BTreeMap, BTreeSet},
     fmt::Debug,
     time::Instant,
 };
@@ -50,44 +49,6 @@ trait SudokuSolver {
 impl Debug for dyn SudokuSolver {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entry(&self.get_inner_grid()).finish()
-    }
-}
-
-#[derive(Debug)]
-struct CellDomain {
-    pos: (usize, usize),
-    domain_size: usize,
-    domain: BTreeSet<u8>,
-}
-
-impl PartialEq for CellDomain {
-    fn eq(&self, other: &Self) -> bool {
-        self.domain_size == other.domain_size
-    }
-}
-
-impl PartialOrd for CellDomain {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Eq for CellDomain {}
-
-impl Ord for CellDomain {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // Reverse must be used to convert the max-heap to min-heap
-        Reverse(self.domain_size).cmp(&Reverse(other.domain_size))
-    }
-}
-
-impl CellDomain {
-    fn new(pos: &(usize, usize), domain: BTreeSet<u8>) -> Self {
-        Self {
-            pos: *pos,
-            domain_size: domain.len(),
-            domain,
-        }
     }
 }
 
@@ -208,16 +169,14 @@ impl DfsSolver {
             return true;
         }
 
-        // TODO: consider possible optimizations like BTreeMap's built in `pop_first`
-
-        // Pop the smallest domain from the min-heap (MRV)
-        let mut heap = Self::map_to_heap(self.possible_values.clone());
-
-        if heap.is_empty() {
+        if self.possible_values.is_empty() {
             return false;
         }
 
-        let CellDomain { pos, domain, .. } = heap.pop().unwrap();
+        // Pop the smallest domain from the min-heap (MRV)
+        // The conversion from `BTreeMap` to `BinaryHeap` is linear anyway, so
+        // basically no performance is lost by iterating through the map instead
+        let (pos, domain) = Self::mrv_domain(&self.possible_values).unwrap();
 
         for d_value in domain {
             if seen.get(&pos).unwrap().contains(&d_value) {
@@ -272,10 +231,13 @@ impl DfsSolver {
         Some(domains)
     }
 
-    fn map_to_heap(map: BTreeMap<(usize, usize), BTreeSet<u8>>) -> BinaryHeap<CellDomain> {
+    /// Iteratively finds the smallest domain from a `BTreeMap` and returns a clone of it.
+    fn mrv_domain(
+        map: &BTreeMap<(usize, usize), BTreeSet<u8>>,
+    ) -> Option<((usize, usize), BTreeSet<u8>)> {
         map.iter()
-            .map(|(pos, domain)| CellDomain::new(pos, domain.clone()))
-            .collect()
+            .min_by(|a, b| a.1.len().cmp(&b.1.len()))
+            .map(|(k, v)| (*k, v.clone()))
     }
 
     fn init_domains(grid: &[Vec<u8>]) -> BTreeMap<(usize, usize), BTreeSet<u8>> {
