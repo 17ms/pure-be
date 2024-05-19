@@ -53,6 +53,6 @@ Benchmarks are produced using [criterion](https://crates.io/crates/criterion) an
 - [x] Integration tests with randomized payloads picked from Gordon Royle's collection (`sudoku17`)
 - [x] Improved error propagation to server responses & internal logging
 - [x] Docs: Randomized benchmarks with [criterion](https://crates.io/crates/criterion)
+- [x] IP based rate limiting with [governor](https://crates.io/crates/governor)
 - [ ] Exact cover solver ([Knuth's Algorithm X](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X) with [Dancing Links](https://en.wikipedia.org/wiki/Dancing_Links))
-- [ ] Server response formatting (i.e. best format to serve the performance related metadata collected by the solver)
-- [ ] Rate limiting via middleware
+- [ ] Performance metadata of the solver process embedded into the server response
