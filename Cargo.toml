@@ -1,6 +1,6 @@
 [package]
 name = "pure-be"
-description = "HTTP API backend for a sudoku solver"
+description = "HTTP API backend for a Sudoku solver"
 authors = ["17ms <hello@golfed.xyz>"]
 license = "MIT"
 version = "0.1.0"

@@ -15,14 +15,14 @@ static RE_FLAT_GRID: Lazy<Regex> =
 #[derive(Serialize, Deserialize)]
 pub struct Entry {
     grid: String,
-    solver: Option<String>,
+    s_type: Option<String>,
 }
 
 impl Entry {
     #[allow(dead_code)]
-    pub fn new(grid: String, solver: Option<String>) -> Self {
+    pub fn new(grid: String, s_type: Option<String>) -> Self {
         // Manual Entry creation should only be utilized in the unit and integration tests
-        Self { grid, solver }
+        Self { grid, s_type }
     }
 
     /// Simultaneously converts the `Entry` into a new `Sudoku` and validates the input format
@@ -31,9 +31,10 @@ impl Entry {
     pub fn to_sudoku(&self) -> Result<Sudoku, ErrorResponse> {
         if !RE_FLAT_GRID.is_match(&self.grid) {
             debug!("Incoming request entry validation failed due to the input not matching the grid regex");
+
             return Err(ErrorResponse::new(
                 "400",
-                String::from("The entry grid isn't exactly 81 long string of digits"),
+                String::from("The entry grid does not pass the regex validation, check the input format constraints"),
             ));
         }
 
@@ -44,6 +45,7 @@ impl Entry {
 
         if !sudoku.is_valid(None) {
             debug!("Incoming request entry validation failed due to the puzzle not meeting the default Sudoku constraints");
+
             return Err(ErrorResponse::new(
                 "400",
                 String::from("Default Sudoku constraints not met"),
@@ -51,8 +53,11 @@ impl Entry {
         }
 
         // TODO: Remove the exception once the Exact Cover solver is implemented
-        if self.solver.as_ref().is_some_and(|s| s == "exact") {
-            return Err(ErrorResponse::new("501", String::from("The Exact Cover solver isn't implemented yet, but will be available in the future versions")));
+        if self.s_type.as_ref().is_some_and(|s| s == "exact") {
+            return Err(ErrorResponse::new(
+                "501", 
+                String::from("The Exact Cover solver is not implemented yet, but will be available in future versions"),
+            ));
         }
 
         Ok(sudoku)
@@ -145,7 +150,7 @@ pub async fn solve(entries: web::Json<Vec<Entry>>) -> impl Responder {
 
     for e in entries.iter() {
         let default_type_str = String::from("cpdfs");
-        let solver_type_str = e.solver.as_ref().unwrap_or(&default_type_str);
+        let solver_type_str = e.s_type.as_ref().unwrap_or(&default_type_str);
 
         match e.to_sudoku() {
             Ok(sudoku) => solvers.push(Solver::new(sudoku, solver_type_str)),
@@ -163,12 +168,14 @@ pub async fn solve(entries: web::Json<Vec<Entry>>) -> impl Responder {
     for mut s in solvers {
         match s.solve() {
             true => {
-                info!("Solver found a solution in {} ms", s.total_cpu_time_ms());
+                let total_cpu_time = s.total_cpu_time_ms();
+                info!("Solver found a solution in {} ms", total_cpu_time);
+
                 solved.push(s.get_inner_grid());
-                cpu_times.push(s.total_cpu_time_ms());
+                cpu_times.push(total_cpu_time);
                 visited_nodes.push(s.total_visited_nodes());
             }
-            false => error!("Internal error: Solver failed even though the input Sudoku was valid"),
+            false => error!("Internal error: Solver failed despite the input Sudoku being valid"),
         };
     }
 
@@ -191,7 +198,7 @@ mod tests {
             grid: String::from(
                 "00080905160020000C30000000001000003008A90000000000040040003060B000051000000000000",
             ),
-            solver: None,
+            s_type: None,
         };
         valid.to_sudoku().unwrap();
     }
@@ -203,7 +210,7 @@ mod tests {
             grid: String::from(
                 "0008051600200000300000000010000030080900000000000400400030600000051000000000",
             ),
-            solver: None,
+            s_type: None,
         };
         valid.to_sudoku().unwrap();
     }
@@ -215,7 +222,7 @@ mod tests {
             grid: String::from(
                 "830070000600195000098000060800060003400803001700020006060000280000419005000080079",
             ),
-            solver: None,
+            s_type: None,
         };
         valid.to_sudoku().unwrap();
     }
@@ -227,7 +234,7 @@ mod tests {
             grid: String::from(
                 "000000037002000050010000000000200104000001600300400000700063000000000200000080000",
             ),
-            solver: Some(String::from("exact")),
+            s_type: Some(String::from("exact")),
         };
         valid.to_sudoku().unwrap();
     }
@@ -238,7 +245,7 @@ mod tests {
             grid: String::from(
                 "000000037002000050010000000000200104000001600300400000700063000000000200000080000",
             ),
-            solver: Some(String::from("nonexistent")),
+            s_type: Some(String::from("nonexistent")),
         };
         malformed.to_sudoku().unwrap();
     }
@@ -249,7 +256,7 @@ mod tests {
             grid: String::from(
                 "000000037002000050010000000000200104000001600300400000700063000000000200000080000",
             ),
-            solver: None,
+            s_type: None,
         };
         valid.to_sudoku().unwrap();
     }

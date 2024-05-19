@@ -24,7 +24,7 @@ impl Conf {
     fn new() -> Self {
         dotenv().ok();
 
-        // Logging (RUST_LOG)
+        // Logging
         env_logger::init_from_env(Env::default().default_filter_or("info"));
 
         // Socket bindings

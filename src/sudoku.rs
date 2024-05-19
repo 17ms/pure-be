@@ -30,7 +30,7 @@ impl Sudoku {
         // This shouldn't happen anyway due to the constraints being checked on request level
         if size != 9 && dim_sqr != 3 {
             return Err(
-                "Malformed input string that doesn't match Sudoku's default size constraints"
+                "Malformed input string that does not match Sudoku's default size constraints"
                     .into(),
             );
         }
