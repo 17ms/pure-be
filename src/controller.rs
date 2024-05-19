@@ -62,15 +62,22 @@ impl Entry {
 #[derive(Serialize, Deserialize)]
 pub struct SuccessResponse {
     solved: Vec<String>,
-    // total_cpu_ms: u128,
-    // TODO: include performance metadata here (part of the "Response formatting" goal specified
-    // in the README.md)
+    total_cpu_ms: u128,
+    avg_cpu_ms: u128,
+    avg_visited_nodes: u64,
 }
 
 impl SuccessResponse {
-    fn new(solved_grids: Vec<Vec<Vec<u8>>>) -> Self {
+    fn new(solved_grids: Vec<Vec<Vec<u8>>>, cpu_times: Vec<u128>, visited_nodes: Vec<u64>) -> Self {
+        let total_cpu_ms = cpu_times.iter().sum();
+        let avg_cpu_ms = total_cpu_ms / cpu_times.len() as u128;
+        let avg_visited_nodes = visited_nodes.iter().sum();
+
         Self {
             solved: solved_grids.into_iter().map(Self::grid_to_string).collect(),
+            total_cpu_ms,
+            avg_cpu_ms,
+            avg_visited_nodes,
         }
     }
 
@@ -150,12 +157,16 @@ pub async fn solve(entries: web::Json<Vec<Entry>>) -> impl Responder {
 
     info!("Starting the synchronous solvers");
     let mut solved = Vec::new();
+    let mut cpu_times = Vec::new();
+    let mut visited_nodes = Vec::new();
 
     for mut s in solvers {
         match s.solve() {
             true => {
-                info!("Solver found a solution in {} ms", s.get_execution_time());
-                solved.push(s.get_inner_grid())
+                info!("Solver found a solution in {} ms", s.total_cpu_time_ms());
+                solved.push(s.get_inner_grid());
+                cpu_times.push(s.total_cpu_time_ms());
+                visited_nodes.push(s.total_visited_nodes());
             }
             false => error!("Internal error: Solver failed even though the input Sudoku was valid"),
         };
@@ -166,7 +177,7 @@ pub async fn solve(entries: web::Json<Vec<Entry>>) -> impl Responder {
         return HttpResponse::InternalServerError().finish();
     }
 
-    HttpResponse::Ok().json(SuccessResponse::new(solved))
+    HttpResponse::Ok().json(SuccessResponse::new(solved, cpu_times, visited_nodes))
 }
 
 #[cfg(test)]

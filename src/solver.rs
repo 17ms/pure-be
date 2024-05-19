@@ -18,29 +18,14 @@ macro_rules! skip_fail_option {
     };
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Metadata {
-    visited_nodes: u32,
-    repetitions: Vec<Vec<u32>>,
-    branches: Vec<Vec<u32>>,
+    visited_nodes: u64,
     cpu_time_ms: u128,
 }
 
-impl Default for Metadata {
-    fn default() -> Self {
-        Metadata {
-            visited_nodes: 0,
-            repetitions: vec![vec![]],
-            branches: vec![vec![]],
-            cpu_time_ms: 0,
-        }
-    }
-
-    // TODO: implement result parsers to make the data in the server response useful
-}
-
 trait SudokuSolver {
-    fn solve(&mut self) -> bool;
+    fn solve(&mut self) -> (bool, u64);
     fn get_inner_grid(&self) -> Vec<Vec<u8>>;
     fn grid_to_string(&self) -> String;
     fn clone_grid(&self) -> Vec<Vec<u8>>;
@@ -57,15 +42,16 @@ struct DfsSolver {
     sudoku: Sudoku,
     related_cells: BTreeMap<(usize, usize), BTreeSet<(usize, usize)>>,
     possible_values: BTreeMap<(usize, usize), BTreeSet<u8>>,
+    visited_nodes: u64,
 }
 
 impl SudokuSolver for DfsSolver {
     /// Solves the Sudoku by first applying AC-3 constraint propagation and then continuing with
     /// a backtracking DFS search enhanced with Minimum Remaining Value (MRV) heuristic and Forward
     /// Checking (FC).
-    fn solve(&mut self) -> bool {
+    fn solve(&mut self) -> (bool, u64) {
         self.ac3();
-        self.dfs(Self::init_unseen())
+        (self.dfs(Self::init_unseen()), self.visited_nodes)
     }
 
     /// Returns the inner grid. Notably doesn't check whether the solving process has finished and
@@ -93,6 +79,7 @@ impl DfsSolver {
             sudoku,
             related_cells,
             possible_values,
+            visited_nodes: 0,
         }
     }
 
@@ -184,6 +171,7 @@ impl DfsSolver {
             }
 
             seen.get_mut(&pos).unwrap().insert(d_value);
+            self.visited_nodes += 1;
 
             // Assign new and prune related domains (FC)
             let old_domains = skip_fail_option!(self.fc_pruning(pos, &d_value));
@@ -322,15 +310,21 @@ impl Solver {
 
     pub fn solve(&mut self) -> bool {
         let cpu_time = Instant::now();
-        let res = self.solver.solve();
+        let (res, visited_nodes) = self.solver.solve();
+        self.metadata.visited_nodes = visited_nodes;
         self.metadata.cpu_time_ms = cpu_time.elapsed().as_millis();
 
         res
     }
 
     /// Returns the total solving time if the assigned Sudoku is solved, otherwise returns `0u128`.
-    pub fn get_execution_time(&self) -> u128 {
+    pub fn total_cpu_time_ms(&self) -> u128 {
         self.metadata.cpu_time_ms
+    }
+
+    /// Returns the total amount of nodes visited during the solver process.
+    pub fn total_visited_nodes(&self) -> u64 {
+        self.metadata.visited_nodes
     }
 
     /// Returns the inner grid converted into a 1D `String`. Supposed to only be used for testing.
@@ -344,8 +338,6 @@ impl Solver {
     pub fn get_inner_grid(&self) -> Vec<Vec<u8>> {
         self.solver.clone_grid()
     }
-
-    // TODO: implement better metadata parsers
 }
 
 #[cfg(test)]
