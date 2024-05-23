@@ -3,7 +3,7 @@ name = "pure-be"
 description = "HTTP API backend for a Sudoku solver"
 authors = ["17ms <hello@golfed.xyz>"]
 license = "MIT"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
