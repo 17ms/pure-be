@@ -1,8 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    error::Error,
-    hash::Hash,
-};
+use std::{collections::HashSet, error::Error, hash::Hash};
 
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +7,6 @@ pub struct Sudoku {
     grid: Vec<Vec<u8>>,
     size: usize,
     dim_sqr: usize,
-    related_cells: HashMap<(u8, u8), u8>,
 }
 
 impl Sudoku {
@@ -39,7 +34,6 @@ impl Sudoku {
             grid,
             size,
             dim_sqr,
-            related_cells: HashMap::new(),
         })
     }
 
@@ -48,13 +42,20 @@ impl Sudoku {
     }
 
     /// Converts the inner `Vec<Vec<u8>>` representation of the grid into 1D `String`.
-    #[allow(dead_code)]
     pub fn grid_to_string(&self) -> String {
         self.grid
             .iter()
             .flat_map(|row| row.iter())
             .map(|&num| num.to_string())
             .collect()
+    }
+
+    /// Wrapper for replacing the partially solved grid with a full solution (given in a 1D vector
+    /// format).
+    pub fn set_solution(&mut self, solution: &[u8]) {
+        for (i, value) in solution.iter().enumerate() {
+            self.set_grid_value((i / 9, i % 9), *value);
+        }
     }
 
     /// Wrapper for setting a new value to a grid cell. Required as a workaround for struggling

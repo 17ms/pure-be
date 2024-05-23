@@ -52,14 +52,6 @@ impl Entry {
             ));
         }
 
-        // TODO: Remove the exception once the Exact Cover solver is implemented
-        if self.s_type.as_ref().is_some_and(|s| s == "exact") {
-            return Err(ErrorResponse::new(
-                "501", 
-                String::from("The Exact Cover solver is not implemented yet, but will be available in future versions"),
-            ));
-        }
-
         Ok(sudoku)
     }
 }
@@ -149,7 +141,7 @@ pub async fn solve(entries: web::Json<Vec<Entry>>) -> impl Responder {
     let mut solvers = Vec::new();
 
     for e in entries.iter() {
-        let default_type_str = String::from("cpdfs");
+        let default_type_str = String::from("dfs");
         let solver_type_str = e.s_type.as_ref().unwrap_or(&default_type_str);
 
         match e.to_sudoku() {
@@ -223,18 +215,6 @@ mod tests {
                 "830070000600195000098000060800060003400803001700020006060000280000419005000080079",
             ),
             s_type: None,
-        };
-        valid.to_sudoku().unwrap();
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_unimplemented_solver() {
-        let valid = Entry {
-            grid: String::from(
-                "000000037002000050010000000000200104000001600300400000700063000000000200000080000",
-            ),
-            s_type: Some(String::from("exact")),
         };
         valid.to_sudoku().unwrap();
     }

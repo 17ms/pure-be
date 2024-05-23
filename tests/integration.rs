@@ -10,15 +10,34 @@ use pure_be::{
 };
 use rand::Rng;
 
-// TODO: include individual test for the Exact Cover solver once implemented
-
 /// Sends a POST request with randomly picked Sudokus to the `/solve` endpoint with the
-/// `solver_type` parameter set to `cpdfs` to test the AC-3 + enhanced DFS implementation.
+/// `solver_type` parameter set to `dfs` to test the AC-3 + enhanced DFS implementation.
 #[actix_web::test]
-async fn test_cpdfs_solver() {
+async fn test_dfs_solver() {
     let test_app = test::init_service(App::new().service(controller::solve)).await;
     let unsolved = get_unsolved();
-    let payload = into_payload(unsolved, None);
+    let payload = into_payload(unsolved, Some(String::from("dfs")));
+
+    let req = test::TestRequest::post()
+        .uri("/solve")
+        .set_json(payload)
+        .to_request();
+    let res: SuccessResponse = test::call_and_read_body_json(&test_app, req).await;
+
+    for grid_str in res.get_solved() {
+        let sudoku = Sudoku::new(grid_str).unwrap();
+        assert!(sudoku.is_valid(None));
+        assert!(sudoku.is_solved());
+    }
+}
+
+/// Sends a POST request with randomly picked Sudokus to the `/solve` endpoint with the
+/// `solver_type` parameter set to `dlx` to test the Algorithm X (exact cover) implementation.
+#[actix_web::test]
+async fn test_dlx_solver() {
+    let test_app = test::init_service(App::new().service(controller::solve)).await;
+    let unsolved = get_unsolved();
+    let payload = into_payload(unsolved, Some(String::from("dlx")));
 
     let req = test::TestRequest::post()
         .uri("/solve")

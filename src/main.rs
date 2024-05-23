@@ -1,4 +1,6 @@
 mod controller;
+mod dfs;
+mod dlx;
 mod solver;
 mod sudoku;
 

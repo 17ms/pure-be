@@ -20,10 +20,10 @@ By default the server will be listening for requests on `localhost:8080`. The de
 
 ## Usage
 
-The API contains a single solver endpoint: `/solve`. The specific algorithm can be selected with either of the following strings as the `solver` input field's value. If the field isn't included into the request or it contains an invalid value the `cpdfs` option will be used by default.
+The API contains a single solver endpoint: `/solve`. The specific algorithm can be selected with either of the following strings as the `solver` input field's value. If the field isn't included into the request or it contains an invalid value the `dlx` option will be used by default, as it's magnitudes faster as the [benchmarks](#performance) indicate.
 
-- `cpdfs`: Starts by applying Arc Consistency Algorithm #3 (constraint propagation) & then continues with backtracking Depth First Search enhanced with Minimum Remaining Value heuristic and Forward Checking
-- `exact`: Will be implemented in a future version (Knuth's Algorithm X with Dancing Links)
+- `dfs`: Starts by applying Arc Consistency Algorithm #3 (constraint propagation) & then continues with backtracking Depth First Search enhanced with Minimum Remaining Value heuristic and Forward Checking
+- `dlx`: Starts by converting the given Sudoku into an exact cover problem, which is then solved using Donald Knuth's Algorithm X, which utilizes the dancing links technique
 
 The endpoint parses the Sudokus from the following request payload format: a JSON array of stringified 1D grids (empty cells represented with `0`):
 
@@ -31,25 +31,32 @@ The endpoint parses the Sudokus from the following request payload format: a JSO
 [
   {
     "grid": "500000010020007000000010000000200604100005000800000000090400200000380000000000700",
-    "solver": "cpdfs|exact"
+    "solver": "dfs|dlx"
   }
 ]
 ```
 
 ## Performance
 
-Benchmarks are produced using [criterion](https://crates.io/crates/criterion) and a few randomly picked samples (of different difficulty levels) from Gordon Royle's [collection](https://web.archive.org/web/20120730100322/http://mapleta.maths.uwa.edu.au/~gordon/sudokumin.php) of 49151 distinct Sudoku configurations.
+Benchmarks are produced using [criterion](https://crates.io/crates/criterion) and a few randomly picked samples from Gordon Royle's [collection](https://web.archive.org/web/20120730100322/http://mapleta.maths.uwa.edu.au/~gordon/sudokumin.php) of 49151 distinct Sudoku configurations.
 
-### Backtracking DFS
+<details>
+<summary>Sample 1</summary>
+<img src=".github/docs/dfs-sample-1.png" alt="DFS solver's performance (average execution & iteration times)">
+<img src=".github/docs/dlx-sample-1.png" alt="DLX solver's performance (average execution & iteration times)">
+</details>
 
-|               | **Lower bound** | **Estimate** | **Upper bound** |
-| ------------- | --------------- | ------------ | --------------- |
-| **Slope**     | 9.0163 µs       | 9.0318 µs    | 9.0504 µs       |
-| **Mean**      | 9.0750 µs       | 9.0950 µs    | 9.1161 µs       |
-| **Std. Dev.** | 88.588 ns       | 105.47 ns    | 126.66 ns       |
-| **Median**    | 9.0308 µs       | 9.1153 µs    | 9.1456 µs       |
+<details>
+<summary>Sample 2</summary>
+<img src=".github/docs/dfs-sample-2.png" alt="DFS solver's performance (average execution & iteration times)">
+<img src=".github/docs/dlx-sample-2.png" alt="DLX solver's performance (average execution & iteration times)">
+</details>
 
-<img src=".github/docs/rand_cpdfs_mean.png" alt="Plot describing the mean based on the benchmark results of the 'CPDFS' solver" width="90%">
+<details>
+<summary>Sample 3</summary>
+<img src=".github/docs/dfs-sample-3.png" alt="DFS solver's performance (average execution & iteration times)">
+<img src=".github/docs/dlx-sample-3.png" alt="DLX solver's performance (average execution & iteration times)">
+</details>
 
 ## Roadmap
 
@@ -61,4 +68,4 @@ Benchmarks are produced using [criterion](https://crates.io/crates/criterion) an
 - [x] Docs: Randomized benchmarks with [criterion](https://crates.io/crates/criterion)
 - [x] IP based rate limiting with [governor](https://crates.io/crates/governor)
 - [x] Performance metadata of the solver process embedded into the server response
-- [ ] Exact cover solver ([Knuth's Algorithm X](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X) with [Dancing Links](https://en.wikipedia.org/wiki/Dancing_Links))
+- [x] [Knuth's Algorithm X](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X) (exact cover) solver
