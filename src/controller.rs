@@ -15,14 +15,14 @@ static RE_FLAT_GRID: Lazy<Regex> =
 #[derive(Serialize, Deserialize)]
 pub struct Entry {
     grid: String,
-    s_type: Option<String>,
+    solver: Option<String>,
 }
 
 impl Entry {
     #[allow(dead_code)]
-    pub fn new(grid: String, s_type: Option<String>) -> Self {
+    pub fn new(grid: String, solver: Option<String>) -> Self {
         // Manual Entry creation should only be utilized in the unit and integration tests
-        Self { grid, s_type }
+        Self { grid, solver }
     }
 
     /// Simultaneously converts the `Entry` into a new `Sudoku` and validates the input format
@@ -142,7 +142,7 @@ pub async fn solve(entries: web::Json<Vec<Entry>>) -> impl Responder {
 
     for e in entries.iter() {
         let default_type_str = String::from("dfs");
-        let solver_type_str = e.s_type.as_ref().unwrap_or(&default_type_str);
+        let solver_type_str = e.solver.as_ref().unwrap_or(&default_type_str);
 
         match e.to_sudoku() {
             Ok(sudoku) => solvers.push(Solver::new(sudoku, solver_type_str)),
@@ -190,7 +190,7 @@ mod tests {
             grid: String::from(
                 "00080905160020000C30000000001000003008A90000000000040040003060B000051000000000000",
             ),
-            s_type: None,
+            solver: None,
         };
         valid.to_sudoku().unwrap();
     }
@@ -202,7 +202,7 @@ mod tests {
             grid: String::from(
                 "0008051600200000300000000010000030080900000000000400400030600000051000000000",
             ),
-            s_type: None,
+            solver: None,
         };
         valid.to_sudoku().unwrap();
     }
@@ -214,7 +214,7 @@ mod tests {
             grid: String::from(
                 "830070000600195000098000060800060003400803001700020006060000280000419005000080079",
             ),
-            s_type: None,
+            solver: None,
         };
         valid.to_sudoku().unwrap();
     }
@@ -225,7 +225,7 @@ mod tests {
             grid: String::from(
                 "000000037002000050010000000000200104000001600300400000700063000000000200000080000",
             ),
-            s_type: Some(String::from("nonexistent")),
+            solver: Some(String::from("nonexistent")),
         };
         malformed.to_sudoku().unwrap();
     }
@@ -236,7 +236,7 @@ mod tests {
             grid: String::from(
                 "000000037002000050010000000000200104000001600300400000700063000000000200000080000",
             ),
-            s_type: None,
+            solver: None,
         };
         valid.to_sudoku().unwrap();
     }
